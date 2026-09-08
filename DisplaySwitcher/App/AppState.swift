@@ -65,10 +65,6 @@ final class AppState: ObservableObject {
 
     func applyPreset(_ preset: DisplayPreset) {
         Task {
-            if settings.confirmBeforeSwitching {
-                // Confirmation is handled by the calling view via
-                // `pendingConfirmationPreset`; this path applies directly.
-            }
             let ok = await displayManager.applyPreset(preset, settings: settings)
             if ok {
                 settings.lastAppliedPresetID = preset.id

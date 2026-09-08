@@ -77,6 +77,10 @@ enum DisplayMatcher {
 
     /// Weighted similarity in 0...1. Weights favour identifiers that survive
     /// renames and re-plugs; the user-visible name is only a tiebreaker.
+    ///
+    /// Zero-valued identifiers (unknown vendor/product/serial) never count as
+    /// agreement, and a hard disagreement between two non-zero hardware IDs is
+    /// treated as a strong negative signal — matching those would be dangerous.
     static func score(preset entry: PresetDisplayEntry, candidate: DisplayInfo) -> Double {
         let a = entry.fingerprint
         let b = candidate.fingerprint
@@ -89,21 +93,29 @@ enum DisplayMatcher {
         }
 
         // Built-in status is the strongest single signal.
-        add(3.0, a.isBuiltIn == b.isBuiltIn)
+        add(2.0, a.isBuiltIn == b.isBuiltIn)
         if a.isBuiltIn != b.isBuiltIn { return 0.0 }
 
-        add(2.0, a.vendorID == b.vendorID)
-        add(2.0, a.productID == b.productID)
+        // Vendor/product IDs count only when both sides report a real value.
+        add(2.0, a.vendorID != 0 && a.vendorID == b.vendorID)
+        add(2.0, a.productID != 0 && a.productID == b.productID)
         // Serial numbers are often 0; only reward non-zero agreement.
-        if a.serialNumber != 0 || b.serialNumber != 0 {
-            add(2.0, a.serialNumber != 0 && a.serialNumber == b.serialNumber)
-        }
+        add(2.0, a.serialNumber != 0 && a.serialNumber == b.serialNumber)
         // Physical size distinguishes same-model displays of different sizes.
-        add(1.0, a.sizeMillimeters == b.sizeMillimeters)
+        add(1.0, a.sizeMillimeters != DisplaySize(width: 0, height: 0)
+            && a.sizeMillimeters == b.sizeMillimeters)
         // Name is cosmetic: small bonus only.
         add(0.5, !a.normalizedName.isEmpty && a.normalizedName == b.normalizedName)
 
         guard weight > 0 else { return 0 }
-        return total / weight
+        let raw = total / weight
+
+        // If two distinct hardware identifiers disagree, treat the pair as
+        // low confidence regardless of how many cosmetic signals agree.
+        let hardDisagreement =
+            (a.vendorID != 0 && b.vendorID != 0 && a.vendorID != b.vendorID)
+            || (a.productID != 0 && b.productID != 0 && a.productID != b.productID)
+            || (a.serialNumber != 0 && b.serialNumber != 0 && a.serialNumber != b.serialNumber)
+        return hardDisagreement ? min(raw, 0.3) : raw
     }
 }

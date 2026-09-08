@@ -8,6 +8,7 @@ struct PresetsSettingsView: View {
     @State private var renamingPreset: DisplayPreset?
     @State private var renameText = ""
     @State private var recordingShortcutFor: DisplayPreset?
+    @State private var pendingConfirmPreset: DisplayPreset?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -90,6 +91,13 @@ struct PresetsSettingsView: View {
                 },
                 onCancel: { recordingShortcutFor = nil })
         }
+        .alert(item: $pendingConfirmPreset) { preset in
+            Alert(
+                title: Text("Apply '\(preset.name)'?"),
+                message: Text("Your display arrangement will change immediately."),
+                primaryButton: .default(Text("Apply")) { appState.applyPreset(preset) },
+                secondaryButton: .cancel { pendingConfirmPreset = nil })
+        }
     }
 
     @ViewBuilder
@@ -117,7 +125,13 @@ struct PresetsSettingsView: View {
             }
             LayoutPreviewView(preset: preset, height: 80)
             HStack {
-                Button("Apply") { appState.applyPreset(preset) }
+                Button("Apply") {
+                    if appState.settings.confirmBeforeSwitching {
+                        pendingConfirmPreset = preset
+                    } else {
+                        appState.applyPreset(preset)
+                    }
+                }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
                     .disabled(appState.displayManager.isApplying)

@@ -17,6 +17,7 @@ enum TestFixtures {
 
     static func display(id: UInt32 = 1,
                         serial: UInt32 = 12345,
+                        product: UInt32 = 0x9162,
                         name: String = "LG UltraGear",
                         origin: DisplayPoint = DisplayPoint(x: 0, y: 0),
                         pointSize: DisplaySize = DisplaySize(width: 2560, height: 1440),
@@ -24,8 +25,8 @@ enum TestFixtures {
                         isBuiltIn: Bool = false) -> DisplayInfo {
         DisplayInfo(
             displayID: id,
-            fingerprint: fingerprint(product: UInt32(0x9162 + id),
-                                     serial: serial + id,
+            fingerprint: fingerprint(product: product,
+                                     serial: serial,
                                      builtIn: isBuiltIn,
                                      name: name.lowercased()),
             name: name,

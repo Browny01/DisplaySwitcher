@@ -54,6 +54,8 @@ TEST_SOURCES = [
     "DisplaySwitcherTests/PresetCodableTests.swift",
     "DisplaySwitcherTests/CoordinateUtilitiesTests.swift",
     "DisplaySwitcherTests/LayoutValidationTests.swift",
+    "DisplaySwitcherTests/KeyboardShortcutTests.swift",
+    "DisplaySwitcherTests/DisplayMatcherEdgeCaseTests.swift",
 ]
 
 
