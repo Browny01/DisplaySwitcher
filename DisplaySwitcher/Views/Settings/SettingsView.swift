@@ -16,5 +16,14 @@ struct SettingsView: View {
         }
         .frame(minWidth: 560, minHeight: 420)
         .padding()
+        .onAppear {
+            // Tag the hosting NSWindow so SettingsWindowPresenter can find it
+            // reliably regardless of localized or renamed titles.
+            DispatchQueue.main.async {
+                NSApp.windows
+                    .first(where: { $0.title == "\(AppConstants.appName) Settings" })?
+                    .identifier = NSUserInterfaceItemIdentifier("settings")
+            }
+        }
     }
 }

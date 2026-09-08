@@ -134,8 +134,12 @@ final class DisplayConfigurationService: Sendable {
         }
 
         // Defensive: overlapping targets would produce an unusable desktop.
-        let frames = moves.map { CGRect(origin: $0.targetOrigin,
-                                        size: current.first(where: { $0.displayID == $0.displayID })?.frame.size ?? .zero) }
+        // Each move gets the size of the display it will actually move to, so
+        // stacked/offset arrangements never false-positive here.
+        let frames = moves.map { move -> CGRect in
+            let size = current.first(where: { $0.displayID == move.displayID })?.frame.size ?? .zero
+            return CGRect(origin: move.targetOrigin, size: size)
+        }
         if CoordinateUtilities.hasOverlaps(frames) {
             AppLogger.configuration.error("Planned layout contains overlaps; aborting.")
             throw DisplayConfigurationError.ambiguousMatch

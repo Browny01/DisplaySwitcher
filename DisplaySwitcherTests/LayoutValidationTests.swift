@@ -65,6 +65,56 @@ final class LayoutValidationTests: XCTestCase {
         XCTAssertEqual(rightMove.targetOrigin.y, mainMove.targetOrigin.y - 200)
     }
 
+    func testStackedLayoutDoesNotTriggerFalseOverlap() throws {
+        // Regression: the overlap guard previously sized every moved display
+        // as the FIRST connected display, so stacked layouts were rejected
+        // as "overlapping". A main display with a second directly below must
+        // plan cleanly.
+        let main = TestFixtures.display(id: 1, origin: DisplayPoint(x: 0, y: 0),
+                                        pointSize: DisplaySize(width: 2560, height: 1440),
+                                        isMain: true)
+        let below = TestFixtures.display(id: 2, serial: 777, name: "Below",
+                                         origin: DisplayPoint(x: 0, y: 1440),
+                                         pointSize: DisplaySize(width: 2560, height: 1440),
+                                         isMain: false)
+        let preset = TestFixtures.preset(displays: [main, below])
+        let service = service(with: [main, below])
+        let plan = try service.plan(preset: preset)
+        XCTAssertEqual(plan.moves.count, 2)
+    }
+
+    func testStackedLayoutWithDifferentSizesPlansCleanly() throws {
+        let main = TestFixtures.display(id: 1, origin: DisplayPoint(x: 0, y: 0),
+                                        pointSize: DisplaySize(width: 2560, height: 1440),
+                                        isMain: true)
+        let smallBelow = TestFixtures.display(id: 2, serial: 777, name: "Below",
+                                              origin: DisplayPoint(x: 500, y: 1440),
+                                              pointSize: DisplaySize(width: 1920, height: 1080),
+                                              isMain: false)
+        let preset = TestFixtures.preset(displays: [main, smallBelow])
+        let service = service(with: [main, smallBelow])
+        let plan = try service.plan(preset: preset)
+        XCTAssertEqual(plan.moves.count, 2)
+    }
+
+    func testPlanRejectsGenuinelyOverlappingTargets() throws {
+        // Defensive path must still fire for a real overlap: two displays
+        // targeted at the same region.
+        let main = TestFixtures.display(id: 1, serial: 101, name: "A",
+                                        origin: DisplayPoint(x: 0, y: 0),
+                                        pointSize: DisplaySize(width: 2000, height: 1000),
+                                        isMain: true)
+        let second = TestFixtures.display(id: 2, serial: 202, name: "B",
+                                          origin: DisplayPoint(x: 100, y: 100),
+                                          pointSize: DisplaySize(width: 2000, height: 1000),
+                                          isMain: false)
+        let preset = TestFixtures.preset(displays: [main, second])
+        let service = service(with: [main, second])
+        XCTAssertThrowsError(try service.plan(preset: preset)) { error in
+            XCTAssertEqual(error as? DisplayConfigurationError, .ambiguousMatch)
+        }
+    }
+
     func testPlanCoversThreeMonitorsAndPortrait() throws {
         let top = TestFixtures.display(id: 1, origin: DisplayPoint(x: 0, y: -1080),
                                        pointSize: DisplaySize(width: 1920, height: 1080),

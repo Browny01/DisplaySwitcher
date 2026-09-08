@@ -121,12 +121,15 @@ final class DisplayManager: ObservableObject {
     // MARK: - Private
 
     private func verify(plan: LayoutPlan) -> Bool {
+        // Quartz documents that it may "adjust" requested origins to remove
+        // gaps or overlaps when committing, so allow a few points of drift.
+        let tolerance = 6.0
         let origins = Dictionary(uniqueKeysWithValues:
             discovery.currentDisplays().map { ($0.displayID, $0.origin.cgPoint) })
         for move in plan.moves {
             guard let actual = origins[move.displayID] else { return false }
-            if abs(actual.x - move.targetOrigin.x) > 1.5
-                || abs(actual.y - move.targetOrigin.y) > 1.5 {
+            if abs(actual.x - move.targetOrigin.x) > tolerance
+                || abs(actual.y - move.targetOrigin.y) > tolerance {
                 return false
             }
         }

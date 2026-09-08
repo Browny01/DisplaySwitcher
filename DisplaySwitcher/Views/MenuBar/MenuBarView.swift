@@ -79,7 +79,9 @@ struct MenuBarView: View {
 
         Divider()
 
-        Button("Settings…") { openWindow(id: "settings") }
+        Button("Settings…") {
+            SettingsWindowPresenter.present(openWindow: openWindow)
+        }
             .keyboardShortcut(",", modifiers: .command)
 
         Button("Quit \(AppConstants.appName)") { NSApplication.shared.terminate(nil) }

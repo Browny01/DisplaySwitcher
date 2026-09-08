@@ -9,6 +9,7 @@ APP_SOURCES = [
     "DisplaySwitcher/App/AppConstants.swift",
     "DisplaySwitcher/App/AppState.swift",
     "DisplaySwitcher/App/DisplaySwitcherApp.swift",
+    "DisplaySwitcher/App/SettingsWindowPresenter.swift",
     "DisplaySwitcher/Models/DisplayInfo.swift",
     "DisplaySwitcher/Models/DisplayPreset.swift",
     "DisplaySwitcher/Models/AppSettings.swift",

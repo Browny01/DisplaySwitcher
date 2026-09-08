@@ -35,12 +35,14 @@ enum CoordinateUtilities {
     }
 
     /// True when no two frames overlap with positive area.
-    /// Touching edges are legal in macOS arrangements.
+    /// Touching edges are legal in macOS arrangements; zero-size frames
+    /// (e.g. a display whose size is not yet known) are ignored defensively.
     static func hasOverlaps(_ frames: [CGRect]) -> Bool {
-        for i in frames.indices {
-            for j in frames.indices where j > i {
-                if frames[i].intersection(frames[j]).width > 0.5
-                    && frames[i].intersection(frames[j]).height > 0.5 {
+        let valid = frames.filter { $0.width > 0.5 && $0.height > 0.5 }
+        for i in valid.indices {
+            for j in valid.indices where j > i {
+                let intersection = valid[i].intersection(valid[j])
+                if intersection.width > 0.5 && intersection.height > 0.5 {
                     return true
                 }
             }
