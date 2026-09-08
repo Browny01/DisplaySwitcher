@@ -1,19 +1,19 @@
 import AppKit
-import SwiftUI
 
-/// Opens the settings window and brings it in front.
+/// Opens the SwiftUI Settings scene and brings it in front.
 ///
-/// Normal apps automatically activate when a window opens; menu-bar apps
-/// (`LSUIElement`) do not, which is why the settings window previously
-/// appeared behind other apps. We open the scene, then make the window key
-/// and activate the app explicitly.
+/// Menu-bar-only apps (`LSUIElement`) don't auto-activate when a window
+/// opens; we send the standard `showSettingsWindow:` action to the main
+/// menu, then activate the app and order the window key.
 @MainActor
 enum SettingsWindowPresenter {
-    static func present(openWindow: OpenWindowAction) {
-        openWindow(id: "settings")
+    static func present() {
+        // The SwiftUI `Settings` scene registers under this AppKit action on
+        // the main menu (File ▸ Settings…, ⌘,).
+        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
         Task {
-            // The SwiftUI Window scene creates its NSWindow asynchronously
-            // after openWindow; poll briefly for it.
+            // Poll briefly for the asynchronously-created NSWindow so we can
+            // bring it forward reliably.
             for _ in 0..<10 {
                 if let window = settingsWindow() {
                     window.makeKeyAndOrderFront(nil)
@@ -28,9 +28,6 @@ enum SettingsWindowPresenter {
     }
 
     static func settingsWindow() -> NSWindow? {
-        NSApp.windows.first { window in
-            window.identifier?.rawValue == "settings"
-                || window.title == "\(AppConstants.appName) Settings"
-        }
+        NSApp.windows.first { $0.title == "Settings" || $0.title.contains("Settings") }
     }
 }

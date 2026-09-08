@@ -1,5 +1,12 @@
 import Foundation
 
+/// Notification names so the AppKit `NSStatusItem` menu can rebuild when
+/// displays or presets change.
+extension Notification.Name {
+    static let displayManagerDidRefresh = Notification.Name("displayManagerDidRefresh")
+    static let presetManagerDidChange = Notification.Name("presetManagerDidChange")
+}
+
 /// Central place for app-wide naming so the app can be renamed easily later.
 enum AppConstants {
     static let appName = "DisplaySwitcher"

@@ -47,6 +47,10 @@ final class AppState: ObservableObject {
         }
         DisplayChangeObserver.shared.start()
         notificationService.requestAuthorizationIfNeeded()
+
+        // Create the menu-bar status item eagerly so the icon appears at
+        // launch, before any window is opened.
+        self.menuBarCoordinator = MenuBarCoordinator(appState: self)
     }
 
     // MARK: - Preset actions
@@ -147,6 +151,18 @@ final class AppState: ObservableObject {
     func setLaunchAtLogin(_ enabled: Bool) {
         loginItemManager.setLaunchAtLogin(enabled)
         settings.launchAtLogin = loginItemManager.isRegistered
+    }
+
+    // MARK: - MenuBar
+
+    /// Owning reference that keeps the NSStatusItem alive for the app's
+    /// lifetime. Created lazily on first access from the UI layer.
+    var menuBarCoordinator: MenuBarCoordinator?
+
+    func ensureMenuBarCoordinator() {
+        if menuBarCoordinator == nil {
+            menuBarCoordinator = MenuBarCoordinator(appState: self)
+        }
     }
 
     private func saveSettings() {

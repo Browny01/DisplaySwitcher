@@ -1,3 +1,4 @@
+import AppKit
 import Carbon
 import Foundation
 
@@ -57,5 +58,37 @@ struct KeyboardShortcut: Codable, Hashable, Sendable {
             if carbonModifiers & flag != 0 { count += 1 }
         }
         return count >= 2
+    }
+
+    /// The single-character key-equivalent for an `NSMenuItem` (empty if the
+    /// key code is not a printable character).
+    var keyEquivalent: String {
+        charactersForSingleKey(keyCode: keyCode) ?? ""
+    }
+
+    /// Carbon modifiers translated to AppKit modifier flags, for NSMenu key
+    /// equivalents.
+    var carbonModifierFlags: NSEvent.ModifierFlags {
+        var flags: NSEvent.ModifierFlags = []
+        if carbonModifiers & UInt32(cmdKey) != 0 { flags.insert(.command) }
+        if carbonModifiers & UInt32(optionKey) != 0 { flags.insert(.option) }
+        if carbonModifiers & UInt32(controlKey) != 0 { flags.insert(.control) }
+        if carbonModifiers & UInt32(shiftKey) != 0 { flags.insert(.shift) }
+        return flags
+    }
+
+    /// Carbon virtual key code to a printable character for NSMenu key
+    /// equivalents. Only covers letters/digits/symbols we expose in the UI.
+    private func charactersForSingleKey(keyCode: UInt32) -> String? {
+        let map: [UInt32: String] = [
+            0: "a", 1: "s", 2: "d", 3: "f", 4: "h", 5: "g", 6: "z", 7: "x",
+            8: "c", 9: "v", 11: "b", 12: "q", 13: "w", 14: "e", 15: "r",
+            16: "y", 17: "t", 18: "1", 19: "2", 20: "3", 21: "4", 22: "6",
+            23: "5", 24: "=", 25: "9", 26: "7", 27: "-", 28: "8", 29: "0",
+            30: "]", 31: "o", 32: "u", 33: "[", 34: "i", 35: "p", 37: "l",
+            38: "j", 39: "'", 40: "k", 41: ";", 42: "\\", 43: ",", 44: "/",
+            45: "n", 46: "m", 47: ".",
+        ]
+        return map[keyCode]
     }
 }

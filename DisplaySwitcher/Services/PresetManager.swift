@@ -119,6 +119,9 @@ final class PresetManager: ObservableObject {
         } catch {
             AppLogger.presets.error("Failed to persist presets: \(error.localizedDescription)")
         }
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .presetManagerDidChange, object: nil)
+        }
     }
 
     // MARK: - Migration

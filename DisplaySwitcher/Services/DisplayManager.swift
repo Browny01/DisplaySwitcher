@@ -28,6 +28,9 @@ final class DisplayManager: ObservableObject {
     func refresh() {
         connectedDisplays = discovery.currentDisplays()
         AppLogger.discovery.debug("Refreshed: \(self.connectedDisplays.count) displays.")
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .displayManagerDidRefresh, object: nil)
+        }
     }
 
     /// Capture the current arrangement as preset entries.
