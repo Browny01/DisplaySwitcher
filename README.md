@@ -38,14 +38,27 @@ A lightweight native macOS menu-bar utility to save multi-monitor display arrang
 
 ## Installation
 
-### Prebuilt application
+### Quick install (recommended)
 
-Prebuilt, signed, and notarized `.app` releases will be published under GitHub Releases (see [Roadmap](#roadmap)). Until then, build from source:
-
-### Build from source
+Requires macOS 14+ and Xcode (or its Command Line Tools). One command builds
+DisplaySwitcher, copies it into `/Applications`, and launches it:
 
 ```bash
-git clone https://github.com/example/DisplaySwitcher.git
+git clone https://github.com/Browny01/DisplaySwitcher.git
+cd DisplaySwitcher
+./install.sh
+```
+
+...or with the included Makefile: `make install`.
+
+The app appears in your Applications folder and lives in the menu bar
+(click the two-displays icon). To remove it: `./uninstall.sh` (your saved
+presets are kept). Re-run `./install.sh` any time to get the latest build.
+
+### Build from source in Xcode
+
+```bash
+git clone https://github.com/Browny01/DisplaySwitcher.git
 cd DisplaySwitcher
 open DisplaySwitcher.xcodeproj
 ```
@@ -55,8 +68,8 @@ Then in Xcode: select the **DisplaySwitcher** scheme, choose **My Mac**, and pre
 Command line:
 
 ```bash
-xcodebuild -project DisplaySwitcher.xcodeproj -scheme DisplaySwitcher -configuration Release build
-xcodebuild -project DisplaySwitcher.xcodeproj -scheme DisplaySwitcherTests test
+make build   # build only
+make test    # run the test suite
 ```
 
 ## Usage
