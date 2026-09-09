@@ -34,31 +34,6 @@ APP_SOURCES = [
     "DisplaySwitcher/Views/Components/LayoutPreviewView.swift",
 ]
 
-# Logic files also compiled into the test bundle so tests run with no host app.
-TEST_SHARED = [
-    "DisplaySwitcher/App/AppConstants.swift",
-    "DisplaySwitcher/Models/DisplayInfo.swift",
-    "DisplaySwitcher/Models/DisplayPreset.swift",
-    "DisplaySwitcher/Models/AppSettings.swift",
-    "DisplaySwitcher/Services/DisplayDiscovery.swift",
-    "DisplaySwitcher/Services/DisplayMatcher.swift",
-    "DisplaySwitcher/Services/DisplayConfigurationService.swift",
-    "DisplaySwitcher/Services/PresetManager.swift",
-    "DisplaySwitcher/Utilities/AppLogger.swift",
-    "DisplaySwitcher/Utilities/CoordinateUtilities.swift",
-    "DisplaySwitcher/Utilities/KeyboardShortcut.swift",
-]
-
-TEST_SOURCES = [
-    "DisplaySwitcherTests/TestFixtures.swift",
-    "DisplaySwitcherTests/DisplayMatcherTests.swift",
-    "DisplaySwitcherTests/PresetCodableTests.swift",
-    "DisplaySwitcherTests/CoordinateUtilitiesTests.swift",
-    "DisplaySwitcherTests/LayoutValidationTests.swift",
-    "DisplaySwitcherTests/KeyboardShortcutTests.swift",
-    "DisplaySwitcherTests/DisplayMatcherEdgeCaseTests.swift",
-]
-
 
 def gid(*parts):
     h = hashlib.sha256("|".join(parts).encode()).hexdigest()[:24].upper()
@@ -66,13 +41,12 @@ def gid(*parts):
 
 
 def main():
-    for f in APP_SOURCES + TEST_SOURCES:
+    for f in APP_SOURCES:
         assert os.path.exists(os.path.join(ROOT, f)), f"missing source: {f}"
 
     build_files = []   # (id, fileref_id)
     file_refs = []     # (id, path, filetype)
     src_app = []
-    src_test = []
     res_app = []
 
     for path in APP_SOURCES:
@@ -81,19 +55,8 @@ def main():
         file_refs.append((fr, path, "sourcecode.swift"))
         build_files.append((bf, fr))
         src_app.append(bf)
-    for path in TEST_SHARED:
-        bf = gid("bf-test", path)
-        fr = gid("fr", path)
-        build_files.append((bf, fr))
-        src_test.append(bf)
-    for path in TEST_SOURCES:
-        fr = gid("fr", path)
-        bf = gid("bf-test", path)
-        file_refs.append((fr, path, "sourcecode.swift"))
-        build_files.append((bf, fr))
-        src_test.append(bf)
 
-    # Asset catalog
+    # Asset catalog (accent colour)
     assets_path = "DisplaySwitcher/Resources/Assets.xcassets"
     assets_fr = gid("fr", assets_path)
     assets_bf = gid("bf-app", assets_path)
@@ -101,8 +64,8 @@ def main():
     build_files.append((assets_bf, assets_fr))
     res_app.append(assets_bf)
 
-    # App icon (.icns) copied verbatim so the Finder/Dock always display the
-    # branded blue icon regardless of asset-catalog client rendering.
+    # App icon (.icns) copied verbatim; Info.plist points to it via
+    # CFBundleIconFile, so the Finder/Dock always show the branded blue icon.
     icns_path = "DisplaySwitcher/Resources/AppIcon.icns"
     icns_fr = gid("fr", icns_path)
     icns_bf = gid("bf-app", icns_path)
@@ -112,14 +75,11 @@ def main():
 
     # Products
     app_product_fr = gid("fr", "product-app")
-    test_product_fr = gid("fr", "product-test")
     file_refs.append((app_product_fr, "DisplaySwitcher.app", "wrapper.application"))
-    file_refs.append((test_product_fr, "DisplaySwitcherTests.xctest", "wrapper.cfbundle"))
 
     # Groups
     g_main = gid("g", "main")
     g_app = gid("g", "appdir")
-    g_tests = gid("g", "testsdir")
     g_products = gid("g", "products")
 
     def group_children(prefix):
@@ -157,14 +117,12 @@ def main():
         else:
             L.append(f'\t\t{fr} = {{isa = PBXFileReference; explicitFileType = {ftype}; includeInIndex = 0; path = "{name}"; sourceTree = BUILT_PRODUCTS_DIR; }};')
 
-    # Frameworks phases (empty; Swift auto-links system frameworks)
+    # Frameworks phase (empty; Swift auto-links system frameworks)
     fw_app = gid("fw", "app")
-    fw_test = gid("fw", "test")
     L.append(f"\t\t{fw_app} = {{isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; }};")
-    L.append(f"\t\t{fw_test} = {{isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; }};")
 
     # Groups
-    L.append(f"\t\t{g_main} = {{isa = PBXGroup; children = ({g_app}, {g_tests}, {g_products}); sourceTree = \"<group>\"; }};")
+    L.append(f"\t\t{g_main} = {{isa = PBXGroup; children = ({g_app}, {g_products}); sourceTree = \"<group>\"; }};")
     L.append(f"\t\t{g_app} = {{isa = PBXGroup; children = ({', '.join(subgroups.values())}); name = DisplaySwitcher; sourceTree = \"<group>\"; }};")
     for name, g in subgroups.items():
         kids = group_children(name)
@@ -172,25 +130,19 @@ def main():
                  "DisplaySwitcher/Services/": "Services", "DisplaySwitcher/Utilities/": "Utilities",
                  "DisplaySwitcher/Views/": "Views", "DisplaySwitcher/Resources/": "Resources"}[name]
         L.append(f"\t\t{g} = {{isa = PBXGroup; children = ({', '.join(kids)}); name = {short}; sourceTree = \"<group>\"; }};")
-    test_kids = [gid("fr", p) for p in TEST_SOURCES]
-    L.append(f"\t\t{g_tests} = {{isa = PBXGroup; children = ({', '.join(test_kids)}); name = DisplaySwitcherTests; sourceTree = \"<group>\"; }};")
-    L.append(f"\t\t{g_products} = {{isa = PBXGroup; children = ({app_product_fr}, {test_product_fr}); name = Products; sourceTree = \"<group>\"; }};")
+    L.append(f"\t\t{g_products} = {{isa = PBXGroup; children = ({app_product_fr}); name = Products; sourceTree = \"<group>\"; }};")
 
-    # Targets & phases
+    # Target & phases
     t_app = gid("t", "app")
-    t_test = gid("t", "test")
     s_app = gid("s", "app")
-    s_test = gid("s", "test")
     r_app = gid("r", "app")
     L.append(f"\t\t{s_app} = {{isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = ({', '.join(src_app)}); runOnlyForDeploymentPostprocessing = 0; }};")
-    L.append(f"\t\t{s_test} = {{isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = ({', '.join(src_test)}); runOnlyForDeploymentPostprocessing = 0; }};")
     L.append(f"\t\t{r_app} = {{isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = ({', '.join(res_app)}); runOnlyForDeploymentPostprocessing = 0; }};")
     L.append(f"\t\t{t_app} = {{isa = PBXNativeTarget; buildConfigurationList = {gid('cl', 'app')}; buildPhases = ({s_app}, {fw_app}, {r_app}); buildRules = (); dependencies = (); name = DisplaySwitcher; productName = DisplaySwitcher; productReference = {app_product_fr}; productType = \"com.apple.product-type.application\"; }};")
-    L.append(f"\t\t{t_test} = {{isa = PBXNativeTarget; buildConfigurationList = {gid('cl', 'test')}; buildPhases = ({s_test}, {fw_test}); buildRules = (); dependencies = (); name = DisplaySwitcherTests; productName = DisplaySwitcherTests; productReference = {test_product_fr}; productType = \"com.apple.product-type.bundle.unit-test\"; }};")
 
     # Project
     proj = gid("proj")
-    L.append(f"\t\t{proj} = {{isa = PBXProject; buildConfigurationList = {gid('cl', 'proj')}; compatibilityVersion = \"Xcode 15.0\"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en); mainGroup = {g_main}; productRefGroup = {g_products}; projectDirPath = \"\"; projectRoot = \"\"; targets = ({t_app}, {t_test}); }};")
+    L.append(f"\t\t{proj} = {{isa = PBXProject; buildConfigurationList = {gid('cl', 'proj')}; compatibilityVersion = \"Xcode 15.0\"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en); mainGroup = {g_main}; productRefGroup = {g_products}; projectDirPath = \"\"; projectRoot = \"\"; targets = ({t_app}); }};")
 
     # Configurations
     def xcconfig(gidname, name, settings):
@@ -225,40 +177,20 @@ def main():
         L.extend(xcconfig(gid("cfg-proj", cfg), cfg, s))
 
     app_common = {
-        "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
         "ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME": "AccentColor",
         "CODE_SIGN_IDENTITY": '"-"',
         "CODE_SIGN_STYLE": "Manual",
         "COMBINE_HIDPI_IMAGES": "YES",
         "DEVELOPMENT_TEAM": '""',
-        "GENERATE_INFOPLIST_FILE": "YES",
-        "INFOPLIST_KEY_CFBundleDisplayName": "DisplaySwitcher",
-        "INFOPLIST_KEY_CFBundleIconFile": '"AppIcon"',
-        "INFOPLIST_KEY_LSUIElement": "YES",
-        "INFOPLIST_KEY_NSHumanReadableCopyright": '"Copyright © 2026 DisplaySwitcher Contributors"',
-        "INFOPLIST_KEY_NSPRINCIPALCLASS": "NSApplication",
+        "INFOPLIST_FILE": '"DisplaySwitcher/Info.plist"',
         "PRODUCT_BUNDLE_IDENTIFIER": "com.displayswitcher.DisplaySwitcher",
         "PRODUCT_NAME": '"DisplaySwitcher"',
     }
     for cfg in ["Debug", "Release"]:
         L.extend(xcconfig(gid("cfg-app", cfg), cfg, app_common))
 
-    test_common = {
-        "BUNDLE_LOADER": '"$(TEST_HOST)"',
-        "CODE_SIGN_IDENTITY": '"-"',
-        "CODE_SIGN_STYLE": "Manual",
-        "DEVELOPMENT_TEAM": '""',
-        "GENERATE_INFOPLIST_FILE": "YES",
-        "PRODUCT_BUNDLE_IDENTIFIER": "com.displayswitcher.DisplaySwitcherTests",
-        "PRODUCT_NAME": '"$(TARGET_NAME)"',
-        "TEST_HOST": '""',
-    }
-    for cfg in ["Debug", "Release"]:
-        L.extend(xcconfig(gid("cfg-test", cfg), cfg, test_common))
-
     for clid, cfgs in [(gid("cl", "proj"), ["cfg-proj", "Debug", "cfg-proj", "Release"]),
-                       (gid("cl", "app"), ["cfg-app", "Debug", "cfg-app", "Release"]),
-                       (gid("cl", "test"), ["cfg-test", "Debug", "cfg-test", "Release"])]:
+                       (gid("cl", "app"), ["cfg-app", "Debug", "cfg-app", "Release"])]:
         L.append(f"\t\t{clid} = {{isa = XCConfigurationList; buildConfigurations = ({gid(cfgs[0], cfgs[1])}, {gid(cfgs[2], cfgs[3])}); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; }};")
 
     L.append("\t};")

@@ -1,8 +1,11 @@
 #!/usr/bin/env swift
 // Renders the DisplaySwitcher app icon (the `display.2` glyph on a blue
-// background) at every size the macOS asset catalog needs.
+// background) at exactly the pixel sizes the macOS asset catalog / .icns
+// need.
 //
-// Usage: swift tools/make_icon.swift
+// Usage:
+//   swift tools/make_icon.swift
+//   iconutil -c icns build/AppIcon.iconset -o DisplaySwitcher/Resources/AppIcon.icns
 import AppKit
 
 let outputDir = "DisplaySwitcher/Resources/Assets.xcassets/AppIcon.appiconset"
@@ -11,61 +14,61 @@ let iconsetDir = "build/AppIcon.iconset"
 let gradientTop = NSColor(srgbRed: 0x38 / 255.0, green: 0xA8 / 255.0, blue: 0xFF / 255.0, alpha: 1.0)
 let gradientBottom = NSColor(srgbRed: 0x00 / 255.0, green: 0x56 / 255.0, blue: 0xD8 / 255.0, alpha: 1.0)
 
-func tinted(_ image: NSImage, with color: NSColor) -> NSImage {
-    let tinted = NSImage(size: image.size)
-    tinted.lockFocus()
-    image.draw(in: NSRect(origin: .zero, size: image.size))
-    color.set()
-    NSRect(origin: .zero, size: image.size).fill(using: .sourceAtop)
-    tinted.unlockFocus()
-    return tinted
-}
+/// Renders the icon into an exact-width RGBA bitmap (not point-based, so a
+/// retina device cannot silently double the pixel dimensions).
+func renderIcon(pixelSize: Int) -> NSBitmapImageRep {
+    guard let rep = NSBitmapImageRep(
+        bitmapDataPlanes: nil,
+        pixelsWide: pixelSize, pixelsHigh: pixelSize,
+        bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+        colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0) else {
+        fputs("error: could not allocate \(pixelSize)x\(pixelSize) bitmap\n", stderr)
+        exit(1)
+    }
 
-func renderIcon(pixelSize: CGFloat) -> NSImage {
-    let canvas = 1024.0
-    let scale = pixelSize / canvas
-    let image = NSImage(size: NSSize(width: pixelSize, height: pixelSize))
-    image.lockFocus()
+    let s = CGFloat(pixelSize)
+    let ctx = NSGraphicsContext(bitmapImageRep: rep)!
+    NSGraphicsContext.saveGraphicsState()
+    NSGraphicsContext.current = ctx
 
-    // Blue background (full-bleed; macOS applies the rounded app-icon shape).
-    let bg = NSBezierPath(rect: NSRect(x: 0, y: 0, width: pixelSize, height: pixelSize))
+    let bg = NSBezierPath(rect: NSRect(x: 0, y: 0, width: s, height: s))
     if let gradient = NSGradient(starting: gradientTop, ending: gradientBottom) {
         gradient.draw(in: bg, angle: -90)
     }
 
-    // The same `display.2` glyph used by the menu-bar status item, in white.
-    let glyphWidth = 0.46 * canvas * scale
-    if let symbol = NSImage(systemSymbolName: "display.2", accessibilityDescription: nil),
-       let configured = symbol.withSymbolConfiguration(
-           NSImage.SymbolConfiguration(pointSize: glyphWidth, weight: .medium)) {
-        let glyph = tinted(configured, with: .white)
-        let size = glyph.size
-        let x = (pixelSize - size.width) / 2
-        let y = (pixelSize - size.height) / 2
-        glyph.draw(in: NSRect(x: x, y: y, width: size.width, height: size.height))
+    // The same `display.2` glyph used by the menu-bar status item, tinted white.
+    let glyphWidth = 0.46 * s
+    if let symbol = NSImage(systemSymbolName: "display.2", accessibilityDescription: nil) {
+        let white = NSImage.SymbolConfiguration(hierarchicalColor: .white)
+        let config = NSImage.SymbolConfiguration(pointSize: glyphWidth, weight: .medium).applying(white)
+        if let configured = symbol.withSymbolConfiguration(config) {
+            let size = configured.size
+            let x = (s - size.width) / 2
+            let y = (s - size.height) / 2
+            configured.draw(in: NSRect(x: x, y: y, width: size.width, height: size.height))
+        }
     }
 
-    image.unlockFocus()
-    return image
+    ctx.flushGraphics()
+    NSGraphicsContext.restoreGraphicsState()
+    return rep
 }
 
-func savePNG(_ image: NSImage, path: String) {
-    guard let tiff = image.tiffRepresentation,
-          let rep = NSBitmapImageRep(data: tiff),
-          let data = rep.representation(using: .png, properties: [:]) else {
+func savePNG(_ rep: NSBitmapImageRep, path: String) {
+    guard let data = rep.representation(using: .png, properties: [:]) else {
         fputs("error: could not encode PNG for \(path)\n", stderr)
         exit(1)
     }
     do {
         try data.write(to: URL(fileURLWithPath: path))
-        print("wrote \(path)")
+        print("wrote \(path) (\(rep.pixelsWide)x\(rep.pixelsHigh))")
     } catch {
         fputs("error: \(error)\n", stderr)
         exit(1)
     }
 }
 
-let sizes: [(name: String, pixels: CGFloat)] = [
+let sizes: [(name: String, pixels: Int)] = [
     ("icon_16x16.png", 16),
     ("icon_16x16@2x.png", 32),
     ("icon_32x32.png", 32),
@@ -78,11 +81,11 @@ let sizes: [(name: String, pixels: CGFloat)] = [
     ("icon_512x512@2x.png", 1024),
 ]
 
+try? FileManager.default.createDirectory(atPath: iconsetDir, withIntermediateDirectories: true)
 for entry in sizes {
-    let image = renderIcon(pixelSize: entry.pixels)
-    savePNG(image, path: "\(outputDir)/\(entry.name)")
-    try? FileManager.default.createDirectory(atPath: iconsetDir, withIntermediateDirectories: true)
-    savePNG(image, path: "\(iconsetDir)/\(entry.name)")
+    let rep = renderIcon(pixelSize: entry.pixels)
+    savePNG(rep, path: "\(outputDir)/\(entry.name)")
+    savePNG(rep, path: "\(iconsetDir)/\(entry.name)")
 }
 print("iconset written to \(iconsetDir)")
 print("run: iconutil -c icns \(iconsetDir) -o DisplaySwitcher/Resources/AppIcon.icns")

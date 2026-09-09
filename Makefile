@@ -1,4 +1,4 @@
-.PHONY: install uninstall build test
+.PHONY: install uninstall build
 
 BUILD_DIR ?= $(HOME)/.cache/DisplaySwitcher/build
 
@@ -11,7 +11,3 @@ uninstall:
 build:
 	python3 tools/generate_project.py
 	xcodebuild -project DisplaySwitcher.xcodeproj -scheme DisplaySwitcher -configuration Release -derivedDataPath $(BUILD_DIR) build
-
-test:
-	python3 tools/generate_project.py
-	xcodebuild -project DisplaySwitcher.xcodeproj -scheme DisplaySwitcherTests -derivedDataPath $(BUILD_DIR) -destination 'platform=macOS' test

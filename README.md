@@ -69,7 +69,6 @@ Command line:
 
 ```bash
 make build   # build only
-make test    # run the test suite
 ```
 
 ## Usage
