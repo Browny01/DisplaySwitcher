@@ -9,7 +9,7 @@ import SwiftUI
 /// created programmatically). `NSStatusItem` is the battle-tested API used
 /// by Rectangle, Ice and similar utilities, and guarantees the icon appears.
 @MainActor
-final class MenuBarCoordinator {
+final class MenuBarCoordinator: NSObject {
     private var statusItem: NSStatusItem?
     private var observeDisplaysChange: NSObjectProtocol?
     private var observePresetsChange: NSObjectProtocol?
@@ -17,6 +17,7 @@ final class MenuBarCoordinator {
 
     init(appState: AppState, isPreview: Bool = false) {
         self.appState = appState
+        super.init()
         if !isPreview {
             setupStatusItem()
             observeChanges()
@@ -29,9 +30,6 @@ final class MenuBarCoordinator {
             let image = NSImage(systemSymbolName: "display.2", accessibilityDescription: AppConstants.appName)
             button.image = image
             button.image?.isTemplate = true
-            button.target = self
-            button.action = #selector(statusItemClicked(_:))
-            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
         item.menu = buildMenu()
         statusItem = item
@@ -39,12 +37,12 @@ final class MenuBarCoordinator {
 
     private func observeChanges() {
         observeDisplaysChange = NotificationCenter.default.addObserver(
-            forName: .displayManagerDidRefresh, object: appState.displayManager, queue: .main
+            forName: .displayManagerDidRefresh, object: nil, queue: .main
         ) { [weak self] _ in
             Task { @MainActor [weak self] in self?.rebuildOnDisplaysChange() }
         }
         observePresetsChange = NotificationCenter.default.addObserver(
-            forName: .presetManagerDidChange, object: appState.presetManager, queue: .main
+            forName: .presetManagerDidChange, object: nil, queue: .main
         ) { [weak self] _ in
             Task { @MainActor [weak self] in self?.rebuildOnPresetsChange() }
         }
@@ -56,11 +54,20 @@ final class MenuBarCoordinator {
         if let statusItem { NSStatusBar.system.removeStatusItem(statusItem) }
     }
 
-    @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
-        // Keep the default menu behaviour (left click opens the menu).
-    }
-
     // MARK: - Menu construction
+
+    /// Applies `self` as the target of every item that has an action, so
+    /// clicks actually dispatch to this coordinator.
+    private func bindTargets(in menu: NSMenu) {
+        for item in menu.items {
+            if item.action != nil {
+                item.target = self
+            }
+            if let submenu = item.submenu {
+                bindTargets(in: submenu)
+            }
+        }
+    }
 
     private func buildMenu() -> NSMenu {
         let menu = NSMenu()
@@ -124,6 +131,7 @@ final class MenuBarCoordinator {
         // Quit
         menu.addItem(NSMenuItem(title: "Quit \(AppConstants.appName)", action: #selector(quit(_:)),
                                 keyEquivalent: "q"))
+        bindTargets(in: menu)
         return menu
     }
 
@@ -181,6 +189,9 @@ final class MenuBarCoordinator {
         alert.addButton(withTitle: "Save")
         alert.addButton(withTitle: "Cancel")
         alert.window.initialFirstResponder = textField
+        // An LSUIElement (menu-bar-only) app is never automatically active;
+        // activate it so the modal dialog actually appears on screen.
+        NSApp.activate(ignoringOtherApps: true)
         let response = alert.runModal()
         if response == .alertFirstButtonReturn {
             let name = textField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
