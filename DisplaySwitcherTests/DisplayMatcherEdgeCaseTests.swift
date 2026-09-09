@@ -1,5 +1,4 @@
 import XCTest
-@testable import DisplaySwitcher
 
 /// Edge-case matching tests: dual same-model monitors, portrait, ambiguity.
 final class DisplayMatcherEdgeCaseTests: XCTestCase {

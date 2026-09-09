@@ -101,6 +101,15 @@ def main():
     build_files.append((assets_bf, assets_fr))
     res_app.append(assets_bf)
 
+    # App icon (.icns) copied verbatim so the Finder/Dock always display the
+    # branded blue icon regardless of asset-catalog client rendering.
+    icns_path = "DisplaySwitcher/Resources/AppIcon.icns"
+    icns_fr = gid("fr", icns_path)
+    icns_bf = gid("bf-app", icns_path)
+    file_refs.append((icns_fr, icns_path, "image.icns"))
+    build_files.append((icns_bf, icns_fr))
+    res_app.append(icns_bf)
+
     # Products
     app_product_fr = gid("fr", "product-app")
     test_product_fr = gid("fr", "product-test")
@@ -116,7 +125,7 @@ def main():
     def group_children(prefix):
         return [gid("fr", p) for p in APP_SOURCES
                 if p.startswith(prefix)] + (
-                    [assets_fr] if prefix == "DisplaySwitcher/Resources/" else [])
+                    [assets_fr, icns_fr] if prefix == "DisplaySwitcher/Resources/" else [])
 
     subgroups = {}
     for name in ["DisplaySwitcher/App/", "DisplaySwitcher/Models/",
@@ -143,6 +152,8 @@ def main():
             L.append(f'\t\t{fr} = {{isa = PBXFileReference; lastKnownFileType = {ftype}; name = "{name}"; path = "{path}"; sourceTree = "<group>"; }};')
         elif ftype == "folder.assetcatalog":
             L.append(f'\t\t{fr} = {{isa = PBXFileReference; lastKnownFileType = {ftype}; name = Assets.xcassets; path = "{path}"; sourceTree = "<group>"; }};')
+        elif ftype == "image.icns":
+            L.append(f'\t\t{fr} = {{isa = PBXFileReference; lastKnownFileType = {ftype}; name = AppIcon.icns; path = "{path}"; sourceTree = "<group>"; }};')
         else:
             L.append(f'\t\t{fr} = {{isa = PBXFileReference; explicitFileType = {ftype}; includeInIndex = 0; path = "{name}"; sourceTree = BUILT_PRODUCTS_DIR; }};')
 
@@ -222,6 +233,7 @@ def main():
         "DEVELOPMENT_TEAM": '""',
         "GENERATE_INFOPLIST_FILE": "YES",
         "INFOPLIST_KEY_CFBundleDisplayName": "DisplaySwitcher",
+        "INFOPLIST_KEY_CFBundleIconFile": '"AppIcon"',
         "INFOPLIST_KEY_LSUIElement": "YES",
         "INFOPLIST_KEY_NSHumanReadableCopyright": '"Copyright © 2026 DisplaySwitcher Contributors"',
         "INFOPLIST_KEY_NSPRINCIPALCLASS": "NSApplication",

@@ -1,6 +1,5 @@
 import Carbon
 import XCTest
-@testable import DisplaySwitcher
 
 final class KeyboardShortcutTests: XCTestCase {
     func testSafetyRejectsSingleModifier() {
