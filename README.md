@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="screenshots/appicon.png" width="128" height="128" alt="DisplaySwitcher app icon">
+</p>
+
 # DisplaySwitcher
 
 A lightweight native macOS menu-bar utility to save multi-monitor display arrangements as named presets and switch between them with one click.
