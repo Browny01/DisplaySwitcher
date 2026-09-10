@@ -17,11 +17,9 @@ A lightweight native macOS menu-bar utility to save multi-monitor display arrang
 
 ## Screenshots
 
-> Screenshots will be added before the first release.
-
-| Menu Bar | Settings — Presets | Settings — Displays |
-|---|---|---|
-| _placeholder_ | _placeholder_ | _placeholder_ |
+| Menu Bar | Settings — Presets |
+|---|---|
+| ![Menu-bar-screenshot](screenshots/Menu-bar-screenshot.png) | ![Settings-screenshot](screenshots/Settings-screenshot.png) |
 
 ## Requirements
 
@@ -106,7 +104,7 @@ make build   # build only
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Bug reports and pull requests are welcome — please read [SECURITY.md](SECURITY.md) before reporting vulnerabilities.
+Bug reports and pull requests are welcome.
 
 ## License
 
