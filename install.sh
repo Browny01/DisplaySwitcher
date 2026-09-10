@@ -61,6 +61,31 @@ pkill -x "$APP_NAME" 2>/dev/null || true
 rm -rf "$DEST"
 ditto "$APP_BUNDLE" "$DEST"
 
+echo "==> Adding CLI link"
+CLI_TARGET="$DEST/Contents/MacOS/$APP_NAME"
+LINK_DIR=""
+if mkdir -p /usr/local/bin 2>/dev/null && ln -sf "$CLI_TARGET" /usr/local/bin/display-switcher 2>/dev/null; then
+  LINK_DIR="/usr/local/bin"
+else
+  for dir in "$HOME/.local/bin" "$HOME/bin"; do
+    if mkdir -p "$dir" 2>/dev/null && ln -sf "$CLI_TARGET" "$dir/display-switcher" 2>/dev/null; then
+      LINK_DIR="$dir"
+      break
+    fi
+  done
+fi
+
+if [ -n "$LINK_DIR" ]; then
+  echo "Installed 'display-switcher' into $LINK_DIR"
+  case ":$PATH:" in
+    *":$LINK_DIR:"*) ;;
+    *) echo "Add it to your PATH:  export PATH=\"$LINK_DIR:\$PATH\"" ;;
+  esac
+else
+  echo "Note: could not link the CLI. Use the full path:"
+  echo "  $CLI_TARGET"
+fi
+
 echo ""
 echo "Done. $APP_NAME is installed at $DEST"
 echo "It lives in your menu bar (click the two-displays icon)."

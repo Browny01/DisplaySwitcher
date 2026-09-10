@@ -9,11 +9,14 @@ APP_SOURCES = [
     "DisplaySwitcher/App/AppConstants.swift",
     "DisplaySwitcher/App/AppState.swift",
     "DisplaySwitcher/App/DisplaySwitcherApp.swift",
+    "DisplaySwitcher/App/DisplaySwitcherMain.swift",
     "DisplaySwitcher/App/MenuBarCoordinator.swift",
     "DisplaySwitcher/App/SettingsWindowPresenter.swift",
+    "DisplaySwitcher/App/CLI.swift",
     "DisplaySwitcher/Models/DisplayInfo.swift",
     "DisplaySwitcher/Models/DisplayPreset.swift",
     "DisplaySwitcher/Models/AppSettings.swift",
+    "DisplaySwitcher/Intents/DisplaySwitcherShortcuts.swift",
     "DisplaySwitcher/Services/DisplayDiscovery.swift",
     "DisplaySwitcher/Services/DisplayMatcher.swift",
     "DisplaySwitcher/Services/DisplayConfigurationService.swift",
@@ -23,6 +26,7 @@ APP_SOURCES = [
     "DisplaySwitcher/Services/LoginItemManager.swift",
     "DisplaySwitcher/Services/NotificationService.swift",
     "DisplaySwitcher/Services/DisplayChangeObserver.swift",
+    "DisplaySwitcher/Services/AutomationEngine.swift",
     "DisplaySwitcher/Utilities/AppLogger.swift",
     "DisplaySwitcher/Utilities/CoordinateUtilities.swift",
     "DisplaySwitcher/Utilities/KeyboardShortcut.swift",
@@ -89,8 +93,9 @@ def main():
 
     subgroups = {}
     for name in ["DisplaySwitcher/App/", "DisplaySwitcher/Models/",
-                 "DisplaySwitcher/Services/", "DisplaySwitcher/Utilities/",
-                 "DisplaySwitcher/Views/", "DisplaySwitcher/Resources/"]:
+                 "DisplaySwitcher/Intents/", "DisplaySwitcher/Services/",
+                 "DisplaySwitcher/Utilities/", "DisplaySwitcher/Views/",
+                 "DisplaySwitcher/Resources/"]:
         subgroups[name] = gid("g", name)
 
     L = []
@@ -127,7 +132,8 @@ def main():
     for name, g in subgroups.items():
         kids = group_children(name)
         short = {"DisplaySwitcher/App/": "App", "DisplaySwitcher/Models/": "Models",
-                 "DisplaySwitcher/Services/": "Services", "DisplaySwitcher/Utilities/": "Utilities",
+                 "DisplaySwitcher/Intents/": "Intents", "DisplaySwitcher/Services/": "Services",
+                 "DisplaySwitcher/Utilities/": "Utilities",
                  "DisplaySwitcher/Views/": "Views", "DisplaySwitcher/Resources/": "Resources"}[name]
         L.append(f"\t\t{g} = {{isa = PBXGroup; children = ({', '.join(kids)}); name = {short}; sourceTree = \"<group>\"; }};")
     L.append(f"\t\t{g_products} = {{isa = PBXGroup; children = ({app_product_fr}); name = Products; sourceTree = \"<group>\"; }};")
@@ -162,7 +168,7 @@ def main():
         "ENABLE_STRICT_OBJC_MSGSEND": "YES",
         "GCC_C_LANGUAGE_STANDARD": "gnu17",
         "MACOSX_DEPLOYMENT_TARGET": "14.0",
-        "MARKETING_VERSION": "1.0",
+        "MARKETING_VERSION": "1.0.1",
         "ONLY_ACTIVE_ARCH": "YES",
         "SDKROOT": "macosx",
         "SWIFT_VERSION": "5.0",

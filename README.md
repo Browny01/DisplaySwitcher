@@ -11,6 +11,8 @@ A lightweight native macOS menu-bar utility to save multi-monitor display arrang
 * Save display arrangements as named presets
 * One-click switching from the menu bar
 * Global keyboard shortcuts (per preset, next/previous)
+* Shortcuts.app automation (App Intents: apply/save/next/previous)
+* Command-line companion (`display-switcher`)
 * Multi-monitor support (3+ displays, portrait, mixed resolutions/scaling)
 * MacBook built-in + external display support
 * Current-preset recognition with checkmark in the menu
@@ -40,10 +42,17 @@ A lightweight native macOS menu-bar utility to save multi-monitor display arrang
 
 ## Installation
 
-### Quick install (recommended)
+### Homebrew (recommended)
+
+```bash
+brew install --cask browny01/homebrew-displayswitcher/displayswitcher
+```
+
+### Build from source
 
 Requires macOS 14+ and Xcode (or its Command Line Tools). One command builds
-DisplaySwitcher, copies it into `/Applications`, and launches it:
+DisplaySwitcher, copies it into `/Applications`, installs the `display-switcher`
+CLI, and launches it:
 
 ```bash
 git clone https://github.com/Browny01/DisplaySwitcher.git
@@ -57,7 +66,7 @@ The app appears in your Applications folder and lives in the menu bar
 (click the two-displays icon). To remove it: `./uninstall.sh` (your saved
 presets are kept). Re-run `./install.sh` any time to get the latest build.
 
-### Build from source in Xcode
+### Building from source in Xcode
 
 ```bash
 git clone https://github.com/Browny01/DisplaySwitcher.git
@@ -72,6 +81,40 @@ Command line:
 ```bash
 make build   # build only
 ```
+
+## Command-line tool
+
+`install.sh` (and the Homebrew cask) provide a `display-switcher` command that
+does everything the app's menu can do, headlessly — handy for scripts, iTerm,
+Alfred/Raycast, and cron:
+
+```bash
+display-switcher list                  # list saved presets
+display-switcher apply "Desk"          # apply a preset
+display-switcher save "Gaming"         # save the current layout
+display-switcher status                # connected displays + matching preset
+display-switcher next | previous       # cycle presets
+display-switcher --help                # all commands
+```
+
+It shares the app's presets and settings. If the command isn't on your PATH,
+invoke the binary directly:
+
+```text
+/Applications/DisplaySwitcher.app/Contents/MacOS/DisplaySwitcher list
+```
+
+## Shortcuts (App Intents)
+
+The Shortcuts app can drive DisplaySwitcher with native actions (the preset
+pick list stays live with your saved presets):
+
+* **Apply display preset**
+* **Save current display layout** (saved as "Quick Save \<date\>")
+* **Switch to next / previous display preset**
+
+Add these from the Shortcuts app, or ask Siri with the app's phrases (e.g.
+"Switch my displays to *Desk*").
 
 ## Usage
 
@@ -88,7 +131,8 @@ make build   # build only
 * **Matching** (`Services/DisplayMatcher.swift`): `CGDirectDisplayID`s are session-local, so each display is fingerprinted from vendor/product/serial IDs, physical size, built-in flag, and name. Candidates are scored with weights favouring stable hardware identifiers; ambiguous pairs are left unmatched rather than guessed.
 * **Switching** (`Services/DisplayConfigurationService.swift`): the preset is validated (complete unambiguous mapping, no overlapping targets), relative offsets are re-anchored so the saved main display stays put, and origins are committed in a single `CGBeginDisplayConfiguration` → `CGConfigureDisplayOrigin` → `CGCompleteDisplayConfiguration(permanently)` transaction. Origins are snapshotted first so a failure restores the previous layout best-effort.
 * **Persistence**: presets live as versioned JSON (`presets.json`) in Application Support; settings live in UserDefaults.
-* **Shortcuts**: Carbon `RegisterEventHotKey` — global, no Accessibility permission, no dependencies. Recorded shortcuts require ≥2 modifiers.
+* **Keyboard shortcuts**: Carbon `RegisterEventHotKey` — global, no Accessibility permission, no dependencies. Recorded shortcuts require ≥2 modifiers.
+* **App Intents**: `AppShortcutsProvider` + `AppEntity` publish native Shortcuts actions; the same headless `AutomationEngine` drives both Shortcuts and the CLI.
 * **Login item**: `SMAppService.mainApp` (macOS 13+; needs a signed build to take effect).
 * **Reconnects**: `CGDisplayRegisterReconfigurationCallback` refreshes the menu and re-runs matching. Layouts are never changed automatically unless *Restore last preset when its displays reconnect* is explicitly enabled.
 
@@ -121,8 +165,5 @@ MIT — see [LICENSE](LICENSE).
 * Careful display-mode (resolution/refresh) support
 * Import/export presets
 * Optional iCloud preset sync
-* Shortcuts.app (App Intents) support
-* CLI companion
-* Homebrew Cask distribution
 * Signed + notarized GitHub Releases
 * Multi-space/workspace helpers where macOS permits

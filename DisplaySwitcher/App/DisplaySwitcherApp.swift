@@ -1,6 +1,7 @@
 import SwiftUI
 
-@main
+/// The SwiftUI menu-bar app. Entry point is `DisplaySwitcherMain`, which
+/// handles CLI invocations before this scene runs.
 struct DisplaySwitcherApp: App {
     @StateObject private var appState = AppState()
 

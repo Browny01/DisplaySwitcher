@@ -14,5 +14,5 @@ enum AppConstants {
     static let presetsFileName = "presets.json"
     static let settingsKey = "com.displayswitcher.settings"
     static let presetsSchemaVersion = 1
-    static let githubURL = URL(string: "https://github.com/example/DisplaySwitcher")!
+    static let githubURL = URL(string: "https://github.com/Browny01/DisplaySwitcher")!
 }

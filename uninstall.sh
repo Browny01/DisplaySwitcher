@@ -6,6 +6,9 @@ set -euo pipefail
 APP_NAME="DisplaySwitcher"
 DEST="/Applications/$APP_NAME.app"
 
+echo "==> Removing CLI link"
+rm -f /usr/local/bin/display-switcher
+
 if [ ! -d "$DEST" ]; then
   echo "$APP_NAME is not installed at $DEST."
   exit 0
