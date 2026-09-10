@@ -8,7 +8,7 @@ struct ShortcutsSettingsView: View {
     @State private var recording: RecordingTarget?
 
     enum RecordingTarget: Identifiable, Hashable {
-        case next, previous
+        case next, previous, quickSave
         var id: Self { self }
     }
 
@@ -22,6 +22,10 @@ struct ShortcutsSettingsView: View {
                 shortcutRow(label: "Previous preset",
                             shortcut: appState.settings.previousPresetShortcut) {
                     recording = .previous
+                }
+                shortcutRow(label: "Quick save layout",
+                            shortcut: appState.settings.quickSaveShortcut) {
+                    recording = .quickSave
                 }
             }
             Section("Per-preset shortcuts") {
@@ -38,27 +42,43 @@ struct ShortcutsSettingsView: View {
         .formStyle(.grouped)
         .sheet(item: $recording) { target in
             ShortcutRecorderView(
-                title: target == .next ? "Shortcut for Next preset" : "Shortcut for Previous preset",
-                current: target == .next ? appState.settings.nextPresetShortcut : appState.settings.previousPresetShortcut,
+                title: title(for: target),
+                current: current(for: target),
                 onSave: { shortcut in
-                    if target == .next {
-                        appState.settings.nextPresetShortcut = shortcut
-                    } else {
-                        appState.settings.previousPresetShortcut = shortcut
-                    }
+                    assign(shortcut, to: target)
                     appState.registerAllShortcuts()
                     recording = nil
                 },
                 onClear: {
-                    if target == .next {
-                        appState.settings.nextPresetShortcut = nil
-                    } else {
-                        appState.settings.previousPresetShortcut = nil
-                    }
+                    assign(nil, to: target)
                     appState.registerAllShortcuts()
                     recording = nil
                 },
                 onCancel: { recording = nil })
+        }
+    }
+
+    private func title(for target: RecordingTarget) -> String {
+        switch target {
+        case .next: return "Shortcut for Next preset"
+        case .previous: return "Shortcut for Previous preset"
+        case .quickSave: return "Shortcut for Quick save layout"
+        }
+    }
+
+    private func current(for target: RecordingTarget) -> KeyboardShortcut? {
+        switch target {
+        case .next: return appState.settings.nextPresetShortcut
+        case .previous: return appState.settings.previousPresetShortcut
+        case .quickSave: return appState.settings.quickSaveShortcut
+        }
+    }
+
+    private func assign(_ shortcut: KeyboardShortcut?, to target: RecordingTarget) {
+        switch target {
+        case .next: appState.settings.nextPresetShortcut = shortcut
+        case .previous: appState.settings.previousPresetShortcut = shortcut
+        case .quickSave: appState.settings.quickSaveShortcut = shortcut
         }
     }
 

@@ -66,6 +66,20 @@ enum AutomationEngine {
         return preset
     }
 
+    /// Default name for an unnamed save: "Quick Save" plus the current time,
+    /// unique to the minute (suffixed if one already exists).
+    static func quickSaveName() -> String {
+        let form = DateFormatter()
+        form.dateFormat = "yyyy-MM-dd HH:mm"
+        form.locale = Locale(identifier: "en_US_POSIX")
+        let baseName = "Quick Save \(form.string(from: Date()))"
+        let existing = Set(presets().map { $0.name })
+        guard existing.contains(baseName) else { return baseName }
+        var attempt = 2
+        while existing.contains("\(baseName) (\(attempt))") { attempt += 1 }
+        return "\(baseName) (\(attempt))"
+    }
+
     /// Apply a named preset synchronously (plan → apply → verify).
     static func apply(named name: String) throws {
         let presetManager = PresetManager()

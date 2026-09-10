@@ -11,6 +11,7 @@ struct AppSettings: Codable, Sendable {
     var restoreLastPresetOnReconnect: Bool = false
     var nextPresetShortcut: KeyboardShortcut?
     var previousPresetShortcut: KeyboardShortcut?
+    var quickSaveShortcut: KeyboardShortcut?
     var openMenuShortcut: KeyboardShortcut?
     /// Fingerprint-set signature of the last successfully applied preset.
     var lastAppliedPresetID: UUID?

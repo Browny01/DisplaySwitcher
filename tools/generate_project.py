@@ -16,6 +16,7 @@ APP_SOURCES = [
     "DisplaySwitcher/Models/DisplayInfo.swift",
     "DisplaySwitcher/Models/DisplayPreset.swift",
     "DisplaySwitcher/Models/AppSettings.swift",
+    "DisplaySwitcher/Models/PresetsDocument.swift",
     "DisplaySwitcher/Intents/DisplaySwitcherShortcuts.swift",
     "DisplaySwitcher/Services/DisplayDiscovery.swift",
     "DisplaySwitcher/Services/DisplayMatcher.swift",
@@ -184,10 +185,10 @@ def main():
 
     app_common = {
         "ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME": "AccentColor",
-        "CODE_SIGN_IDENTITY": '"-"',
-        "CODE_SIGN_STYLE": "Manual",
+        "CODE_SIGN_IDENTITY": '"Apple Development"',
+        "CODE_SIGN_STYLE": "Automatic",
         "COMBINE_HIDPI_IMAGES": "YES",
-        "DEVELOPMENT_TEAM": '""',
+        "DEVELOPMENT_TEAM": '"SHNN8GS53Y"',
         "INFOPLIST_FILE": '"DisplaySwitcher/Info.plist"',
         "PRODUCT_BUNDLE_IDENTIFIER": "com.displayswitcher.DisplaySwitcher",
         "PRODUCT_NAME": '"DisplaySwitcher"',

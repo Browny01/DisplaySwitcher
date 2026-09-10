@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Creates and owns the menu-bar status item using the classic AppKit
 /// `NSStatusItem` + `NSMenu` API.
@@ -120,6 +121,14 @@ final class MenuBarCoordinator: NSObject {
         let saveItem = NSMenuItem(title: "Save Current Layout…", action: #selector(saveCurrentLayout(_:)),
                                   keyEquivalent: "")
         menu.addItem(saveItem)
+
+        // Import / Export
+        let exportItem = NSMenuItem(title: "Export Presets…", action: #selector(exportPresets(_:)),
+                                    keyEquivalent: "")
+        menu.addItem(exportItem)
+        let importItem = NSMenuItem(title: "Import Presets…", action: #selector(importPresets(_:)),
+                                    keyEquivalent: "")
+        menu.addItem(importItem)
         menu.addItem(.separator())
 
         // Settings
@@ -167,6 +176,53 @@ final class MenuBarCoordinator: NSObject {
         presentSaveLayoutPopover()
     }
 
+    @objc private func exportPresets(_ sender: NSMenuItem) {
+        let panel = NSSavePanel()
+        panel.title = "Export Presets"
+        panel.nameFieldStringValue = "DisplaySwitcher-presets.json"
+        panel.allowedContentTypes = [.json]
+        NSApp.activate(ignoringOtherApps: true)
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        if !appState.exportPresets(to: url) {
+            presentErrorAlert("Could not export presets. Check that the destination is writable.")
+        }
+    }
+
+    @objc private func importPresets(_ sender: NSMenuItem) {
+        let panel = NSOpenPanel()
+        panel.title = "Import Presets"
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        NSApp.activate(ignoringOtherApps: true)
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        let alert = NSAlert()
+        alert.messageText = "Import Presets"
+        alert.informativeText = "Import \(panel.nameFieldStringValue)? Merge it with your existing presets, or replace them all?"
+        alert.addButton(withTitle: "Merge")
+        alert.addButton(withTitle: "Replace All")
+        alert.addButton(withTitle: "Cancel")
+        let response = alert.runModal()
+        switch response {
+        case .alertFirstButtonReturn:
+            let count = appState.importPresets(from: url, replacing: false)
+            if count == 0 { presentErrorAlert("The file contained no readable presets.") }
+        case .alertSecondButtonReturn:
+            let count = appState.importPresets(from: url, replacing: true)
+            if count == 0 { presentErrorAlert("The file contained no readable presets.") }
+        default:
+            break
+        }
+    }
+
+    private func presentErrorAlert(_ message: String) {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = message
+        NSApp.activate(ignoringOtherApps: true)
+        alert.runModal()
+    }
+
     @objc private func openSettings(_ sender: NSMenuItem) {
         SettingsWindowPresenter.present()
     }
@@ -182,9 +238,9 @@ final class MenuBarCoordinator: NSObject {
     private func presentSaveLayoutPopover() {
         let alert = NSAlert()
         alert.messageText = "Save Current Layout"
-        alert.informativeText = "Name this arrangement so you can switch back to it later."
+        alert.informativeText = "Name this arrangement so you can switch back to it later (leave blank for a Quick Save)."
         let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 240, height: 24))
-        textField.placeholderString = "e.g. Desk"
+        textField.placeholderString = AutomationEngine.quickSaveName()
         alert.accessoryView = textField
         alert.addButton(withTitle: "Save")
         alert.addButton(withTitle: "Cancel")
@@ -195,9 +251,7 @@ final class MenuBarCoordinator: NSObject {
         let response = alert.runModal()
         if response == .alertFirstButtonReturn {
             let name = textField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !name.isEmpty {
-                appState.saveCurrentLayout(named: name)
-            }
+            appState.saveCurrentLayout(named: name.isEmpty ? AutomationEngine.quickSaveName() : name)
         }
     }
 }

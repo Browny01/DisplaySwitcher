@@ -96,18 +96,20 @@ struct ApplyPresetIntent: AppIntent {
 struct SaveCurrentLayoutIntent: AppIntent {
     static let title: LocalizedStringResource = "Save current display layout"
     static let description = IntentDescription(
-        "Saves your current display arrangement as a new preset.")
+        "Saves your current display arrangement as a new preset. Leave the name blank for a Quick Save.")
+
+    @Parameter(title: "Layout name",
+               requestValueDialog: "Name this layout — or leave it blank for a Quick Save")
+    var name: String
 
     init() {}
 
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        let form = DateFormatter()
-        form.dateFormat = "yyyy-MM-dd HH:mm"
-        form.locale = Locale(identifier: "en_US_POSIX")
-        let name = "Quick Save \(form.string(from: Date()))"
-        _ = try AutomationEngine.save(named: name)
-        return .result(dialog: "Saved layout as \"\(name)\".")
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalName = trimmed.isEmpty ? AutomationEngine.quickSaveName() : trimmed
+        _ = try AutomationEngine.save(named: finalName)
+        return .result(dialog: "Saved layout as \"\(finalName)\".")
     }
 }
 

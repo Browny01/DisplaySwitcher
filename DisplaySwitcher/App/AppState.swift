@@ -18,6 +18,7 @@ final class AppState: ObservableObject {
     let notificationService = NotificationService()
 
     private var cancellables = Set<AnyCancellable>()
+    private var presetChangeObserver: NSObjectProtocol?
     private var lastSignature: String?
 
     init(displayManager: DisplayManager? = nil,
@@ -48,9 +49,25 @@ final class AppState: ObservableObject {
         DisplayChangeObserver.shared.start()
         notificationService.requestAuthorizationIfNeeded()
 
+        // Presets can also be changed on disk by the CLI or Shortcuts.app; the
+        // in-app manager only knows about in-memory edits, so reload whenever
+        // the file is persisted so the menu bar and settings stay in sync.
+        self.presetChangeObserver = NotificationCenter.default.addObserver(
+            forName: .presetManagerDidChange, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.reloadPresets() }
+        }
+
         // Create the menu-bar status item eagerly so the icon appears at
         // launch, before any window is opened.
         self.menuBarCoordinator = MenuBarCoordinator(appState: self)
+    }
+
+    // MARK: - Preset reload
+
+    func reloadPresets() {
+        presetManager.load()
+        updateRecognisedPreset()
     }
 
     // MARK: - Preset actions
@@ -65,6 +82,34 @@ final class AppState: ObservableObject {
             notificationService.show(title: AppConstants.appName,
                                      body: "Saved '\(preset.name)' with \(entries.count) displays")
         }
+    }
+
+    /// Save with the nearest Quick Save name (dated, unique to the minute).
+    func quickSaveCurrentLayout() {
+        saveCurrentLayout(named: AutomationEngine.quickSaveName())
+    }
+
+    // MARK: - Import / Export
+
+    @discardableResult
+    func exportPresets(to url: URL) -> Bool {
+        do {
+            try presetManager.export(to: url)
+            AppLogger.ui.info("Exported \(self.presetManager.presets.count) presets to \(url.lastPathComponent).")
+            return true
+        } catch {
+            AppLogger.ui.error("Preset export failed: \(error.localizedDescription)")
+            return false
+        }
+    }
+
+    @discardableResult
+    func importPresets(from url: URL, replacing: Bool) -> Int {
+        let count = presetManager.importFile(at: url, replacing: replacing)
+        if count > 0 {
+            updateRecognisedPreset()
+        }
+        return count
     }
 
     func applyPreset(_ preset: DisplayPreset) {
@@ -106,6 +151,28 @@ final class AppState: ObservableObject {
                 applyPreset(preset)
             }
         }
+
+        // Automatic per-setup switching: recall any preset that is marked
+        // "auto-apply" and whose saved displays now match the connected set.
+        applyAutomaticSetupPresetIfNeeded()
+    }
+
+    /// Applies the first auto-apply preset whose saved displays fully match
+    /// the currently connected set — but only if that preset is not already
+    /// the recognised active one (avoids re-applying the same layout).
+    private func applyAutomaticSetupPresetIfNeeded() {
+        let candidates = presetManager.presets.filter { $0.autoApplyOnSetup }
+        guard !candidates.isEmpty, !displayManager.isApplying else { return }
+        let connected = displayManager.connectedDisplays
+        for preset in candidates {
+            guard recognisedPresetID != preset.id else { continue }
+            let matches = DisplayMatcher.match(preset: preset, against: connected)
+            if DisplayMatcher.isCompleteMatch(matches, preset: preset) {
+                AppLogger.ui.info("Detected setup for '\(preset.name)'; auto-applying.")
+                applyPreset(preset)
+                return
+            }
+        }
     }
 
     // MARK: - Shortcuts
@@ -121,6 +188,11 @@ final class AppState: ObservableObject {
         if let shortcut = settings.previousPresetShortcut {
             shortcutManager.setShortcut(shortcut, named: "previousPreset") { [weak self] in
                 Task { @MainActor [weak self] in self?.cyclePreset(direction: -1) }
+            }
+        }
+        if let shortcut = settings.quickSaveShortcut {
+            shortcutManager.setShortcut(shortcut, named: "quickSave") { [weak self] in
+                Task { @MainActor [weak self] in self?.quickSaveCurrentLayout() }
             }
         }
         for preset in presetManager.presets where preset.shortcut != nil {

@@ -84,6 +84,56 @@ final class PresetManager: ObservableObject {
         persist()
     }
 
+    func setAutoApply(_ enabled: Bool, for preset: DisplayPreset) {
+        guard let index = presets.firstIndex(where: { $0.id == preset.id }) else { return }
+        presets[index].autoApplyOnSetup = enabled
+        presets[index].updatedAt = Date()
+        persist()
+    }
+
+    // MARK: - Import / Export
+
+    /// Write the current preset store to an arbitrary location.
+    func export(to url: URL) throws {
+        let data = try JSONEncoder().encode(PresetStoreFile(presets: presets))
+        try data.write(to: url, options: .atomic)
+    }
+
+    /// Load a preset file. `replacing` = true replaces all presets; otherwise
+    /// the imported presets are merged, renaming any duplicates. Returns the
+    /// number of presets read from the file (0 on parse failure).
+    @discardableResult
+    func importFile(at url: URL, replacing: Bool) -> Int {
+        do {
+            let data = try Data(contentsOf: url)
+            let store = try JSONDecoder().decode(PresetStoreFile.self, from: data)
+            importPresets(migrateIfNeeded(store).presets, replacing: replacing)
+            AppLogger.presets.info("Imported \(store.presets.count) presets\(replacing ? " (replaced)" : "").")
+            return store.presets.count
+        } catch {
+            AppLogger.presets.error("Failed to import presets: \(error.localizedDescription)")
+            return 0
+        }
+    }
+
+    private func importPresets(_ imported: [DisplayPreset], replacing: Bool) {
+        if replacing {
+            presets = imported
+        } else {
+            var existingNames = Set(presets.map { $0.name })
+            for preset in imported {
+                var copy = preset
+                copy.id = UUID()
+                if existingNames.contains(copy.name) {
+                    copy.name = uniqueName(basedOn: copy.name)
+                }
+                existingNames.insert(copy.name)
+                presets.append(copy)
+            }
+        }
+        persist()
+    }
+
     func preset(withID id: UUID) -> DisplayPreset? {
         presets.first(where: { $0.id == id })
     }

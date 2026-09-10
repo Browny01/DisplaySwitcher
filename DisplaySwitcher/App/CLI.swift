@@ -65,10 +65,12 @@ enum CLI {
                 print("Applied \"\(presetName)\".")
                 code = 0
             case "save":
-                guard args.count > 1 else {
-                    throw AutomationEngineError.usage("Usage: \(name) save \"Preset Name\"")
+                let presetName: String
+                if args.count > 1 {
+                    presetName = args.dropFirst().joined(separator: " ")
+                } else {
+                    presetName = AutomationEngine.quickSaveName()
                 }
-                let presetName = args.dropFirst().joined(separator: " ")
                 let preset = try AutomationEngine.save(named: presetName)
                 print("Saved \"\(preset.name)\" with \(preset.displayCount) displays.")
                 code = 0
@@ -113,7 +115,7 @@ enum CLI {
         Commands:
           list                  List saved presets
           apply "<name>"        Apply a saved preset
-          save "<name>"         Save the current layout as a preset
+          save ["<name>"]       Save the current layout (blank = Quick Save, dated)
           status                Show connected displays and matching preset
           next                  Switch to the next preset
           previous              Switch to the previous preset

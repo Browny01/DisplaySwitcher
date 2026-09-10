@@ -9,6 +9,11 @@ struct PresetsSettingsView: View {
     @State private var renameText = ""
     @State private var recordingShortcutFor: DisplayPreset?
     @State private var pendingConfirmPreset: DisplayPreset?
+    @State private var showImporter = false
+    @State private var showExporter = false
+    @State private var exportDocument = PresetsDocument(presets: [])
+    @State private var pendingImportURL: URL?
+    @State private var importNotice: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -22,6 +27,13 @@ struct PresetsSettingsView: View {
                     newPresetName = ""
                 }
                 .disabled(newPresetName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                Button("Export…") {
+                    exportDocument = PresetsDocument(presets: appState.presetManager.presets)
+                    showExporter = true
+                }
+                Button("Import…") {
+                    showImporter = true
+                }
             }
 
             if let error = appState.displayManager.lastError {
@@ -53,9 +65,45 @@ struct PresetsSettingsView: View {
                 .listStyle(.inset)
             }
 
-            Text("Tip: drag rows to reorder. Your most-used preset can go first.")
+            Text("Tip: drag rows to reorder. Auto-apply recalls a preset automatically when its display setup connects.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+        }
+        .fileImporter(isPresented: $showImporter, allowedContentTypes: [.json]) { result in
+            switch result {
+            case .success(let url): pendingImportURL = url
+            case .failure: importNotice = "Could not open that file."
+            }
+        }
+        .fileExporter(isPresented: $showExporter,
+                      document: exportDocument,
+                      contentType: .json,
+                      defaultFilename: "DisplaySwitcher-presets") { _ in }
+        .confirmationDialog("Import Presets",
+                            isPresented: Binding(
+                                get: { pendingImportURL != nil },
+                                set: { if !$0 { pendingImportURL = nil } }),
+                            titleVisibility: .visible) {
+            Button("Merge with existing presets") {
+                if let url = pendingImportURL {
+                    importFrom(url, replacing: false)
+                }
+                pendingImportURL = nil
+            }
+            Button("Replace all presets", role: .destructive) {
+                if let url = pendingImportURL {
+                    importFrom(url, replacing: true)
+                }
+                pendingImportURL = nil
+            }
+            Button("Cancel", role: .cancel) { pendingImportURL = nil }
+        }
+        .alert("Import", isPresented: Binding(
+            get: { importNotice != nil },
+            set: { if !$0 { importNotice = nil } })) {
+            Button("OK") { importNotice = nil }
+        } message: {
+            Text(importNotice ?? "")
         }
         .sheet(item: $renamingPreset) { preset in
             VStack(spacing: 12) {
@@ -141,6 +189,12 @@ struct PresetsSettingsView: View {
                     .controlSize(.small)
                 Button("Shortcut…") { recordingShortcutFor = preset }
                     .controlSize(.small)
+                Toggle("Auto-apply", isOn: Binding(
+                    get: { preset.autoApplyOnSetup },
+                    set: { appState.presetManager.setAutoApply($0, for: preset) }))
+                    .toggleStyle(.checkbox)
+                    .controlSize(.small)
+                    .help("Automatically apply this preset when its display setup connects")
                 Spacer()
                 Button(role: .destructive) {
                     appState.presetManager.delete(preset)
@@ -152,5 +206,17 @@ struct PresetsSettingsView: View {
             }
         }
         .padding(.vertical, 4)
+    }
+
+    private func importFrom(_ url: URL, replacing: Bool) {
+        let count = appState.importPresets(from: url, replacing: replacing)
+        if count > 0 {
+            appState.registerAllShortcuts()
+            importNotice = replacing
+                ? "Replaced presets with \(count) imported."
+                : "Imported \(count) new presets."
+        } else {
+            importNotice = "The file contained no readable presets."
+        }
     }
 }

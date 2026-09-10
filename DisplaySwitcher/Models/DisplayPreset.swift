@@ -44,13 +44,17 @@ struct DisplayPreset: Identifiable, Codable, Hashable, Sendable {
     /// Keyboard shortcut bound to this preset, if any.
     var shortcut: KeyboardShortcut?
     var notes: String?
+    /// When true, this preset is recalled automatically whenever a display
+    /// setup matching its saved displays connects.
+    var autoApplyOnSetup: Bool
 
     init(
         id: UUID = UUID(),
         name: String,
         displays: [PresetDisplayEntry],
         shortcut: KeyboardShortcut? = nil,
-        notes: String? = nil
+        notes: String? = nil,
+        autoApplyOnSetup: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -60,6 +64,7 @@ struct DisplayPreset: Identifiable, Codable, Hashable, Sendable {
         self.displays = displays
         self.shortcut = shortcut
         self.notes = notes
+        self.autoApplyOnSetup = autoApplyOnSetup
     }
 
     var displayCount: Int { displays.count }
@@ -75,6 +80,40 @@ struct DisplayPreset: Identifiable, Codable, Hashable, Sendable {
             CGRect(x: entry.origin.x, y: entry.origin.y,
                    width: entry.pointSize.width, height: entry.pointSize.height)
         })
+    }
+
+    // MARK: - Codable (forward-compatible)
+
+    /// Older preset files predate `autoApplyOnSetup`; decode it as false.
+    private enum CodingKeys: String, CodingKey {
+        case id, name, createdAt, updatedAt, schemaVersion, displays, shortcut, notes,
+             autoApplyOnSetup
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        createdAt = try c.decode(Date.self, forKey: .createdAt)
+        updatedAt = try c.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
+        schemaVersion = try c.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 0
+        displays = try c.decode([PresetDisplayEntry].self, forKey: .displays)
+        shortcut = try c.decodeIfPresent(KeyboardShortcut.self, forKey: .shortcut)
+        notes = try c.decodeIfPresent(String.self, forKey: .notes)
+        autoApplyOnSetup = try c.decodeIfPresent(Bool.self, forKey: .autoApplyOnSetup) ?? false
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encode(createdAt, forKey: .createdAt)
+        try c.encode(updatedAt, forKey: .updatedAt)
+        try c.encode(schemaVersion, forKey: .schemaVersion)
+        try c.encode(displays, forKey: .displays)
+        try c.encodeIfPresent(shortcut, forKey: .shortcut)
+        try c.encodeIfPresent(notes, forKey: .notes)
+        try c.encode(autoApplyOnSetup, forKey: .autoApplyOnSetup)
     }
 }
 
