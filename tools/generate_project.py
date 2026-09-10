@@ -169,7 +169,7 @@ def main():
         "ENABLE_STRICT_OBJC_MSGSEND": "YES",
         "GCC_C_LANGUAGE_STANDARD": "gnu17",
         "MACOSX_DEPLOYMENT_TARGET": "14.0",
-        "MARKETING_VERSION": "1.0.1",
+        "MARKETING_VERSION": "1.1.0",
         "ONLY_ACTIVE_ARCH": "YES",
         "SDKROOT": "macosx",
         "SWIFT_VERSION": "5.0",

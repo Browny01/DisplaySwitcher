@@ -10,9 +10,13 @@ A lightweight native macOS menu-bar utility to save multi-monitor display arrang
 
 * Save display arrangements as named presets
 * One-click switching from the menu bar
-* Global keyboard shortcuts (per preset, next/previous)
+* Global keyboard shortcuts (per preset, next/previous, quick save)
 * Shortcuts.app automation (App Intents: apply/save/next/previous)
 * Command-line companion (`display-switcher`)
+* Import/export presets (merge or replace)
+* Automatic per-setup switching (auto-apply when a preset's displays connect)
+* Quick Save — leave the name blank and a dated "Quick Save" is used, in the app, Shortcuts, CLI, and hotkeys alike
+* Live refresh — layouts changed by the CLI or Shortcuts appear in the app instantly
 * Multi-monitor support (3+ displays, portrait, mixed resolutions/scaling)
 * MacBook built-in + external display support
 * Current-preset recognition with checkmark in the menu
@@ -160,10 +164,15 @@ MIT — see [LICENSE](LICENSE).
 
 ## Roadmap
 
-* Automatic per-setup switching ("when these monitors connect, apply this preset")
-* Location/dock-based profiles
-* Careful display-mode (resolution/refresh) support
-* Import/export presets
-* Optional iCloud preset sync
-* Signed + notarized GitHub Releases
-* Multi-space/workspace helpers where macOS permits
+**Done recently:** auto per-setup switching, import/export presets, Quick Save naming everywhere, and live refresh after external changes.
+
+*Next up*
+* Undo last switch — a menu item, shortcut, and CLI command that reverts the previous layout; switching setups is disruptive and an instant undo is the best safety net.
+* Full display-mode recall — restore resolution, refresh rate, and scaling per preset (mode changes are planned carefully because forcing a bad mode can strand a display).
+* Scheduled / dock / location profiles — apply presets based on time of day or Wi-Fi network.
+
+*Later*
+* iCloud preset sync across Macs.
+* Custom display names and labels for matching.
+* CLI extensions: `import`, `export`, `rename`, `delete` commands.
+* Signed + notarized GitHub releases (needs an Apple Developer paid membership).
